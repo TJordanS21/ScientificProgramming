@@ -6,4 +6,5 @@ scipy
 yfinance
 jupyter
 notebook
-
+streamlit
+openai

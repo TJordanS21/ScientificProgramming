@@ -1,29 +1,28 @@
 # ==============================================================
-# Stock – Konfidenzintervalle (10 Tage) + Visualisierungen + Szenarien
+# Swiss Stock Analysis – Confidence Intervals, Visualisations & Scenarios
 # ==============================================================
-# Übersicht:
-# Dieses Skript lädt Kursdaten (Yahoo Finance), bereitet sie auf,
-# berechnet t-Konfidenzintervalle (für Mittelwerte täglicher Renditen),
-# zeigt Tabellen/Plots, vergleicht CI-Breiten, analysiert rollierende
-# 10-Tages-Fenster und erzeugt synthetische Szenarien (bullish, bearish etc.).
+# Overview:
+# This module computes t-confidence intervals for mean daily returns,
+# displays reliability tables/plots, compares CI widths, performs rolling
+# 10-day window analysis, and supports synthetic scenario generation.
 #
-# Wichtige statistische Punkte:
-# - Renditen: einfache tägliche prozentuale Änderungen (pct_change)
-# - Für n=10 (kleine Stichprobe) verwenden wir die t-Verteilung (df = n-1)
-# - Standardfehler SE(ȳ) = s / √n, mit s als Stichproben-StdAbw (ddof=1)
-# - (1-α)-Konfidenzintervall: ȳ ± t_{α/2, df} * SE(ȳ)
+# Key statistical points:
+# - Returns: simple daily percentage changes (pct_change)
+# - For n=10 (small sample) we use the t-distribution (df = n-1)
+# - Standard error SE(ȳ) = s / √n, with s as sample std dev (ddof=1)
+# - (1-α) confidence interval: ȳ ± t_{α/2, df} * SE(ȳ)
 #
-# Abhängigkeiten: numpy, pandas, matplotlib, seaborn, scipy, yfinance
-# - numpy: Mathematische Operationen und Arrays.
-# - pandas: Datenanalyse und Tabellen (DataFrames).
-# - matplotlib: Grafische Darstellung (Plots).
-# - seaborn: Erweiterte, schönere Visualisierungen.
-# - scipy: Wissenschaftliche und statistische Funktionen.
-# - yfinance: Lädt Finanzdaten (z.B. Aktienkurse) von Yahoo Finance.
-# Hinweise:
-# - yfinance liefert einen DataFrame; wir auto_adjust=True setzen, um
-#   Splits/Dividenden-adj. Schlusskurse ("Close") zu bekommen.
-# - Plots sind rein illustrativ; Achsen/Skalen sind für Renditen in Dezimalform.
+# Dependencies: numpy, pandas, matplotlib, seaborn, scipy, yfinance
+# - numpy: Mathematical operations and arrays
+# - pandas: Data analysis and DataFrames
+# - matplotlib: Plotting and charts
+# - seaborn: Enhanced statistical visualisations
+# - scipy: Scientific and statistical functions
+# - yfinance: Downloads financial data (e.g. stock prices) from Yahoo Finance
+# Notes:
+# - yfinance returns a DataFrame; we set auto_adjust=True to get
+#   split/dividend-adjusted close prices ("Close").
+# - Plots are illustrative; axes/scales are for returns in decimal form.
 # ==============================================================
 
 from __future__ import annotations
@@ -44,55 +43,52 @@ TICKERS: list[str] = ["UBS", "NESN.SW", "NOVN.SW"]  # UBS, Nestlé, Novartis
 ticker: str = TICKERS[0]  # default / primary ticker
 
 # ----------------------- Logging --------------------------------
-# Basis-Logging einrichten: Zeit | Level | Nachricht
+# Basic logging setup: time | level | message
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
     datefmt="%H:%M:%S"
 )
-# Namensspezifischer Logger, damit Ausgaben leicht filterbar sind
+# Named logger for easy filtering
 log = logging.getLogger(ticker)
 # ----------------------- Config ---------------------------------
-# Matplotlib DPI etwas höher für schärfere Bilder
+# Higher matplotlib DPI for sharper images
 plt.rcParams.update({"figure.dpi": 120})
-# Seaborn-Kontext "talk": grössere Schrift, gut für Präsentationen
+# Seaborn "talk" context: larger fonts, good for presentations
 sns.set_context("talk")
 
 # ==============================================================
-# (b) ZUVERLÄSSIGKEIT / KRITISCHE z-WERTE (grosse df ≈ Normalverteilung)
+# (b) RELIABILITY / CRITICAL z-VALUES (large df ≈ Normal distribution)
 # ==============================================================
 
 def make_reliability_table(conf_levels: List[float]) -> pd.DataFrame:
     """
-    Erzeugt eine Tabelle mit z-Werten für gegebene Konfidenzniveaus.
+    Creates a table of critical t-values for given confidence levels.
 
-    Hintergrund:
-    - Für grosse Freiheitsgrade nähert sich t der Normalverteilung an.
-    - z_{α/2} = Φ^{-1}(1 − α/2), mit Φ als Standardnormal-CDF.
+    Background:
+    - For large degrees of freedom, t approaches the normal distribution.
+    - z_{α/2} = Φ^{-1}(1 − α/2), where Φ is the standard normal CDF.
 
-    Beispielspalten:
-    - Konfidenzniveau: "95%"
+    Columns:
+    - Confidence Level: "95%"
     - 1 - α: 0.95
-    - z_{α/2}: 1.960
+    - t_{α/2}: 1.960
     """
     rows = []
     for c in conf_levels:
         alpha = 1 - c
-
-        # z = stats.t.ppf(1 - alpha/2, df=100)
         z = stats.t.ppf(1 - alpha/2, df=9)
-
         rows.append({
-            "Konfidenzniveau": f"{int(c*100)}%",
+            "Confidence Level": f"{int(c*100)}%",
             "1 - α": c,
-            "z_{α/2}": round(z, 3)
+            "t_{α/2}": round(z, 3)
         })
     return pd.DataFrame(rows)
 
 
-def plot_reliability_table(tbl: pd.DataFrame, title="Tabelle 6 – hohe Freiheitsgrade (≈ z)"):
+def plot_reliability_table(tbl: pd.DataFrame, title="Critical t-values (df=9)"):
     """
-    Zeigt die obige Tabelle als statische Matplotlib-Tabelle an.
+    Displays the reliability table as a static matplotlib table.
     """
     fig, ax = plt.subplots(figsize=(7.5, 1 * len(tbl)))
     ax.axis("off")
@@ -110,16 +106,16 @@ def plot_reliability_table(tbl: pd.DataFrame, title="Tabelle 6 – hohe Freiheit
     plt.show()
 
 # ==============================================================
-# (c)(d) STANDARDFEHLER & t-KONF.-INTERVALLE (n=10)
+# (c)(d) STANDARD ERROR & t-CONFIDENCE INTERVALS (n=10)
 # ==============================================================
 
 @dataclass
 class MeanCI:
     """
-    Datenobjekt für Berechnungen:
-    - mean: Stichprobenmittel ȳ
-    - se: Standardfehler SE(ȳ) = s/√n
-    - df: Freiheitsgrade = n - 1
+    Data object for CI calculations:
+    - mean: sample mean ȳ
+    - se: standard error SE(ȳ) = s/√n
+    - df: degrees of freedom = n - 1
     """
     mean: float
     se: float
@@ -128,124 +124,124 @@ class MeanCI:
 
 def summarize_returns_for_ci(rets: pd.Series) -> MeanCI:
     """
-    Aggregiert eine Renditeserie zu den für t-CI benötigten Kennzahlen.
+    Aggregates a return series into the statistics needed for a t-CI.
 
-    Schritte:
-    - n bestimmen
-    - Mittelwert und Stichproben-StdAbw (ddof=1)
-      ddof=1: Berechnet die Stichprobenstandardabweichung – das heisst, es wird durch (n − 1) geteilt.
-      ddof=0: Berechnet die Standardabweichung der Grundgesamtheit – es wird durch n geteilt.
-    - Standardfehler: se = sd / sqrt(n)
+    Steps:
+    - Determine n
+    - Compute mean and sample std dev (ddof=1)
+      ddof=1: sample standard deviation — divides by (n − 1)
+      ddof=0: population standard deviation — divides by n
+    - Standard error: se = sd / sqrt(n)
     """
     data = pd.Series(rets)
     n = len(data)
     mean = data.mean()
 
-    sd = data.std(ddof=1)  # ddof=1 → Stichproben-StdAbw
+    sd = data.std(ddof=1)  # ddof=1 → sample std dev
     se = sd / np.sqrt(n)
     return MeanCI(mean=mean, se=se, df=n-1)
 
 
 def t_confidence_interval(m: MeanCI, confidence: float) -> Tuple[float, float]:
     """
-    Berechnet das zweiseitige t-Konfidenzintervall:
+    Computes the two-sided t-confidence interval:
     [ȳ − t_{α/2, df} * SE, ȳ + t_{α/2, df} * SE]
     """
-    tcrit = stats.t.ppf(1 - (1-confidence)/2, df=m.df)  # kritischer t-Wert
-    halfwidth = tcrit * m.se                             # Halbbreite des Intervalls
+    tcrit = stats.t.ppf(1 - (1-confidence)/2, df=m.df)  # critical t-value
+    halfwidth = tcrit * m.se                             # half-width of interval
     return (m.mean - halfwidth, m.mean + halfwidth)
 
 
 def build_ci_table(m: MeanCI, conf_levels: List[float]) -> pd.DataFrame:
     """
-    Baut eine Tabelle mit CI-Grenzen, Breite etc. für mehrere Konfidenzniveaus.
-    Spalten:
-    - Konfidenzniveau, df, Mittelwert (ȳ), SE(ȳ), CI_unten, CI_oben, Breite
+    Builds a table with CI bounds, width, etc. for multiple confidence levels.
+    Columns:
+    - Confidence Level, df, Mean (ȳ), SE(ȳ), CI_lower, CI_upper, Width
     """
     rows = []
     for c in conf_levels:
         lo, hi = t_confidence_interval(m, c)
         rows.append({
-            "Konfidenzniveau": f"{int(c*100)}%",
+            "Confidence Level": f"{int(c*100)}%",
             "df": m.df,
-            "Mittelwert (ȳ)": m.mean,
+            "Mean (ȳ)": m.mean,
             "SE(ȳ)": m.se,
-            "CI_unten": lo,
-            "CI_oben": hi,
-            "Breite": hi - lo
+            "CI_lower": lo,
+            "CI_upper": hi,
+            "Width": hi - lo
         })
     return pd.DataFrame(rows)
 
 
-# Visualisierungen für (c)(d)
-def plot_mean_se_and_ci(m: MeanCI, ci_tbl: pd.DataFrame, title_prefix= f"{ticker} (10 Handelstage)"):
+# Visualisations for (c)(d)
+def plot_mean_se_and_ci(m: MeanCI, ci_tbl: pd.DataFrame, title_prefix=f"{ticker} (10 trading days)"):
     """
-    Zwei Abbildungen:
-    1) Balken = Mittelwert, Errorbar = ± SE
-    2) Errorbars für verschiedene Konfidenzniveaus (Zentren + Halbbreiten)
+    Two figures:
+    1) Point = mean, errorbar = ± SE
+    2) Errorbars for different confidence levels (centres + half-widths)
     """
     log.info(m)
-    # (1) Mittelwert & SE (Errorbar)
+    # (1) Mean & SE (errorbar)
     plt.figure(figsize=(8, 4))
     plt.errorbar(["ȳ"], [m.mean], yerr=[m.se], fmt="o", capsize=5, color="tab:blue")
-    plt.title(f"{title_prefix} – Mittelwert & Standardfehler")
-    plt.ylabel("Tägliche Rendite")
+    plt.title(f"{title_prefix} – Mean & Standard Error")
+    plt.ylabel("Daily Return")
     plt.grid(True, axis="y", linestyle="--", alpha=0.5)
     plt.tight_layout()
     plt.show()
 
-    # (2) t-Konfidenzintervalle als Errorbars
-    plt.figure(figsize=(7,6))
-    xs = list(ci_tbl["Konfidenzniveau"])
-    # Mittelpunkt und Halbbreite je Intervall für die Darstellung
-    centers = [ (lo + hi) / 2 for lo, hi in zip(ci_tbl["CI_unten"], ci_tbl["CI_oben"]) ]
-    half = [ (hi - lo) / 2 for lo, hi in zip(ci_tbl["CI_unten"], ci_tbl["CI_oben"]) ]
+    # (2) t-confidence intervals as errorbars
+    plt.figure(figsize=(7, 6))
+    xs = list(ci_tbl["Confidence Level"])
+    # Centre and half-width per interval for display
+    centers = [(lo + hi) / 2 for lo, hi in zip(ci_tbl["CI_lower"], ci_tbl["CI_upper"])]
+    half = [(hi - lo) / 2 for lo, hi in zip(ci_tbl["CI_lower"], ci_tbl["CI_upper"])]
     plt.errorbar(xs, centers, yerr=half, fmt="o", capsize=6)
-    plt.axhline(0, color="black", linewidth=1)  # Referenzlinie bei 0-Rendite
-    plt.title(f"{title_prefix} – t-Konfidenzintervalle (df={m.df})")
-    plt.ylabel("Tägliche Rendite (Mittelwert ± Halbbreite)")
+    plt.axhline(0, color="black", linewidth=1)  # Reference line at 0 return
+    plt.title(f"{title_prefix} – t-Confidence Intervals (df={m.df})")
+    plt.ylabel("Daily Return (Mean ± Half-width)")
     plt.grid(True, axis="y", linestyle="--", alpha=0.5)
     plt.tight_layout()
     plt.show()
 
 # ==============================================================
-# (e) VERGLEICH DER CI-BREITEN (Grafik)
+# (e) CI WIDTH COMPARISON (chart)
 # ==============================================================
 
-def plot_ci_widths(ci_table: pd.DataFrame, title: str = "Breite der Konfidenzintervalle (n=10)"):
+def plot_ci_widths(ci_table: pd.DataFrame, title: str = "Confidence Interval Widths (n=10)"):
     """
-    Balkendiagramm der Intervallbreiten für verschiedene Konfidenzniveaus.
-    Interpretation: Höheres Konfidenzniveau → breiteres Intervall.
+    Bar chart of interval widths for different confidence levels.
+    Interpretation: Higher confidence level → wider interval.
     """
-    plt.figure(figsize=(7,4))
-    x = ci_table["Konfidenzniveau"]
-    y = ci_table["Breite"]
+    plt.figure(figsize=(7, 4))
+    x = ci_table["Confidence Level"]
+    y = ci_table["Width"]
     plt.bar(x, y)
-    plt.ylabel("Breite des Intervalls")
-    plt.xlabel("Konfidenzniveau")
+    plt.ylabel("Interval Width")
+    plt.xlabel("Confidence Level")
     plt.title(title)
     plt.grid(True, axis="y", linestyle="--", alpha=0.5)
     plt.tight_layout()
     plt.show()
 
 # ==============================================================
-# ERWEITERUNG: rollierende 10-Tages-Intervalle & Chunking
+# EXTENSION: Rolling 10-day intervals & chunking
 # ==============================================================
 
 def rolling_ci_analysis(df: pd.DataFrame, window: int = 10, conf: float = 0.95) -> pd.DataFrame:
     """
-    Rollierende Analyse: Für jedes 10-Tages-Fenster (oder 'window') wird
-    der Mittelwert der Renditen samt t-Konfidenzintervall berechnet.
+    Rolling analysis: For each 10-day window (or 'window'), the mean
+    return and t-confidence interval are computed.
 
-    Rückgabe-Spalten:
-    - EndDate: Enddatum des Fensters
-    - Mean: 10-Tages-Mittelrendite
-    - Lower/Upper: CI-Grenzen
-    - Width: CI-Breite
+    Return columns:
+    - EndDate: end date of the window
+    - Mean: 10-day mean return
+    - Lower/Upper: CI bounds
+    - Width: CI width
     """
     rets = df["Return"].dropna()
     results = []
-    # Fenster über die Renditeserie schieben
+    # Slide window over the return series
     for i in range(window, len(rets) + 1):
         sample = rets.iloc[i - window:i]
         m = summarize_returns_for_ci(sample)
@@ -267,8 +263,8 @@ def plot_rolling_ci(df_roll: pd.DataFrame, conf: float,
                     ylims: Tuple[float, float] | None = None,
                     ystep: float = 0.01):
     """
-    Visualisiert eine rollierende 10-Tages-Mittelrendite samt CI-Band.
-    - ylims/ystep erlauben einheitliche Skalen (vergleichbar über Plots)
+    Visualises a rolling 10-day mean return with CI band.
+    - ylims/ystep allow uniform scales (comparable across plots)
     """
     plt.figure(figsize=(10,5))
     plt.plot(df_roll["EndDate"], df_roll["Mean"], label="10d Mean Return")
@@ -281,7 +277,7 @@ def plot_rolling_ci(df_roll: pd.DataFrame, conf: float,
     plt.legend()
     plt.grid(True, linestyle="--", alpha=0.5)
 
-    # Einheitliche Skala erzwingen (optional)
+    # Enforce uniform scale (optional)
     if ylims is not None:
         plt.ylim(*ylims)
     ax = plt.gca()
@@ -295,25 +291,25 @@ def plot_rolling_ci_all(df_dict: Dict[float, pd.DataFrame],
                         ylims: Tuple[float, float] | None = None,
                         ystep: float = 0.01):
     """
-    Zeichnet 90%, 95% und 99% rollierende CIs gemeinsam.
-    - Breite Intervalle zuerst füllen (Z-Ordnung), schmalere obenauf.
-    - Eine gemeinsame Mean-Linie reicht (identisch über Konfidenzniveaus).
+    Draws 90%, 95% and 99% rolling CIs together.
+    - Wider intervals filled first (z-order), narrower on top.
+    - One shared mean line suffices (identical across confidence levels).
     """
     plt.figure(figsize=(11, 6))
 
-    # Zeichenreihenfolge: von breit (99) zu schmal (90)
+    # Draw order: from wide (99%) to narrow (90%)
     conf_order = sorted(df_dict.keys(), reverse=True)
-    # Farblegende (frei wählbar, nur zur Unterscheidung)
-    colors = {0.90: "#4CAF50", 0.95: "#FFC107", 0.99: "#F44336"}  # grün, gelb, rot
+    # Colour legend (freely chosen, just for distinction)
+    colors = {0.90: "#4CAF50", 0.95: "#FFC107", 0.99: "#F44336"}  # green, yellow, red
 
-    # Konfidenzbänder füllen
+    # Fill confidence bands
     for conf in conf_order:
         df = df_dict[conf]
         plt.fill_between(df["EndDate"], df["Lower"], df["Upper"],
                          color=colors.get(conf, "gray"), alpha=0.3,
                          label=f"{int(conf*100)}% CI")
 
-    # Eine Mean-Linie (gleich für alle conf)
+    # One mean line (same for all confidence levels)
     mean_df = next(iter(df_dict.values()))
     plt.plot(mean_df["EndDate"], mean_df["Mean"], color="black",
              linewidth=1.5, label="10-Day Mean Return")
@@ -336,19 +332,19 @@ def plot_rolling_ci_all(df_dict: Dict[float, pd.DataFrame],
 
 def chunked_ci_analysis(df: pd.DataFrame, window: int = 10, conf: float = 0.95) -> pd.DataFrame:
     """
-    "Chunking" statt rollierend:
-    - Die Renditeserie wird in disjunkte Blöcke der Länge 'window' zerlegt.
-    - Für jeden vollen Block wird ein CI berechnet (nicht überlappend).
+    Chunked (non-overlapping) CI analysis:
+    - The return series is split into disjoint blocks of length 'window'.
+    - A CI is computed for each full block.
 
-    Rückgabe-Spalten:
-    - Period (laufende Nummer), Start, End, Mean, Lower, Upper, Width
+    Return columns:
+    - Period (running number), Start, End, Mean, Lower, Upper, Width
     """
     rets = df["Return"].dropna().reset_index()
     chunks = [rets.iloc[i:i+window] for i in range(0, len(rets), window)]
     results = []
     for idx, chunk in enumerate(chunks):
         if len(chunk) < window:
-            continue  # letzte Restlänge verwerfen
+            continue  # discard incomplete trailing block
         m = summarize_returns_for_ci(chunk["Return"])
         lo, hi = t_confidence_interval(m, conf)
         results.append({
