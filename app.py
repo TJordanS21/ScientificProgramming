@@ -17,6 +17,7 @@ from scenarios import generate_scenario
 
 st.set_page_config(page_title="Swiss Stock Analysis", page_icon="\U0001F4C8", layout="wide")
 st.title("\U0001F4C8 Swiss Blue-Chip Stock Return Analysis")
+st.markdown("**Tyler Storz, Alen Rama, Noel Mörgeli**")
 st.markdown("---")
 
 st.sidebar.header("Settings")

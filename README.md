@@ -46,7 +46,9 @@ python main.py
 - See `requirements.txt`
 
 ### Authors
-- [Your names here]
+- Tyler Storz
+- Alen Rama
+- Noel Mörgeli
 
 ### License
 MIT
