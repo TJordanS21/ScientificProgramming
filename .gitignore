@@ -1,3 +1,6 @@
+# Secrets
+.env
+
 # Data files (large datasets)
 data/*.db
 data/*.csv

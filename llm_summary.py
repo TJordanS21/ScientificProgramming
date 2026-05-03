@@ -12,18 +12,35 @@ import pandas as pd
 
 
 def _get_client():
-    """Lazy-import openai and return a client."""
+    """Lazy-import openai and return a client.
+
+    Reads API key from:
+    1. OPENAI_API_KEY environment variable, or
+    2. .env file in the project root (OPENAI_API_KEY=sk-...)
+    """
     try:
         from openai import OpenAI
-        api_key = os.environ.get("OPENAI_API_KEY", "")
-        if not api_key:
-            raise RuntimeError(
-                "Set OPENAI_API_KEY environment variable to use LLM features. "
-                "Example: export OPENAI_API_KEY='sk-...'"
-            )
-        return OpenAI(api_key=api_key)
     except ImportError:
         raise RuntimeError("Install openai package: pip install openai")
+
+    # Try loading from .env file if env var not set
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        env_path = os.path.join(os.path.dirname(__file__), ".env")
+        if os.path.exists(env_path):
+            with open(env_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("OPENAI_API_KEY="):
+                        api_key = line.split("=", 1)[1].strip().strip("'\"")
+                        break
+
+    if not api_key:
+        raise RuntimeError(
+            "Set OPENAI_API_KEY environment variable or create a .env file. "
+            "Example: echo 'OPENAI_API_KEY=sk-...' > .env"
+        )
+    return OpenAI(api_key=api_key)
 
 
 def summarise_statistics(
@@ -131,4 +148,5 @@ Provide a brief comparative analysis (under 200 words) covering:
         max_tokens=400,
     )
     return response.choices[0].message.content
+
 
