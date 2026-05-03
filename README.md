@@ -1,9 +1,9 @@
 # Scientific Programming – Project Work (FS2026)
 
-## UBS Stock Return Analysis: Confidence Intervals & Market Scenarios
+## UBS, Nestlé & Novartis Stock Return Analysis: Confidence Intervals & Market Scenarios
 
 ### Overview
-This project analyses daily returns of UBS stock using statistical methods (confidence intervals, hypothesis testing) and compares real market data against synthetic scenarios (bull, bear, volatile, crisis, neutral).
+This project analyses daily returns of Swiss blue-chip stocks (UBS, Nestlé, Novartis) using statistical methods (confidence intervals, hypothesis testing) and compares real market data against synthetic scenarios (bull, bear, volatile, crisis, neutral).
 
 ### Features
 - **Data Collection**: Real-world stock data via Yahoo Finance API (`yfinance`)
@@ -18,7 +18,7 @@ This project analyses daily returns of UBS stock using statistical methods (conf
 ```
 ├── analysis.py        # Core statistical functions (CI, reliability tables, plots)
 ├── scenarios.py       # Synthetic scenario generation & comparison plots
-├── DataLoader.py      # Yahoo Finance data fetching & preparation
+├── data_loader.py     # Yahoo Finance data fetching & preparation
 ├── database.py        # SQLite storage & SQL queries
 ├── main.py            # CLI entry point
 ├── project.ipynb      # Jupyter notebook (main deliverable)
@@ -50,3 +50,6 @@ python main.py
 
 ### License
 MIT
+
+
+

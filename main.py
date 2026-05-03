@@ -2,9 +2,9 @@ from typing import Dict
 
 import pandas as pd
 
-from DataLoader import DataLoader, prepare_data
+from data_loader import DataLoader, prepare_data
 from analysis import (make_reliability_table, summarize_returns_for_ci, plot_reliability_table,
-                      build_ci_table, plot_mean_se_and_ci, ticker, plot_ci_widths, log,
+                      build_ci_table, plot_mean_se_and_ci, ticker, TICKERS, plot_ci_widths, log,
                       rolling_ci_analysis, plot_rolling_ci_all)
 from scenarios import generate_scenario, plot_scenarios_overview_one_image
 

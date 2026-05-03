@@ -39,8 +39,9 @@ import seaborn as sns
 from matplotlib.ticker import MultipleLocator
 from scipy import stats
 
-# ----------------------- Gewählter Stock --------------------------------
-ticker: str = "UBS"
+# ----------------------- Stock tickers ----------------------------------
+TICKERS: list[str] = ["UBS", "NESN.SW", "NOVN.SW"]  # UBS, Nestlé, Novartis
+ticker: str = TICKERS[0]  # default / primary ticker
 
 # ----------------------- Logging --------------------------------
 # Basis-Logging einrichten: Zeit | Level | Nachricht
