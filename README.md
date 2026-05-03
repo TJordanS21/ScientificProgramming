@@ -97,5 +97,9 @@ echo 'OPENAI_API_KEY=sk-your-key-here' > .env
 | 5 | Web application | `app.py` — Streamlit with 6 interactive tabs |
 | 6 | GitHub repo | Public repository with `.gitignore` |
 
+### AI Disclosure
+Parts of this project were developed with the assistance of AI tools (GitHub Copilot / ChatGPT). All AI-generated code was reviewed, tested, and adapted by the team members. The statistical methodology, research question, analysis design, and interpretation of results are entirely our own work. AI was used as a productivity tool for code scaffolding, documentation, and boilerplate — similar to using Stack Overflow or library documentation.
+
 ### License
 MIT
+
