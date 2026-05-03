@@ -32,6 +32,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Tuple
 
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -282,6 +283,9 @@ def plot_rolling_ci(df_roll: pd.DataFrame, conf: float,
         plt.ylim(*ylims)
     ax = plt.gca()
     ax.yaxis.set_major_locator(MultipleLocator(ystep))
+    ax.xaxis.set_major_locator(mdates.MonthLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
     plt.tight_layout()
     plt.show()
@@ -325,6 +329,9 @@ def plot_rolling_ci_all(df_dict: Dict[float, pd.DataFrame],
         plt.ylim(*ylims)
     ax = plt.gca()
     ax.yaxis.set_major_locator(MultipleLocator(ystep))
+    ax.xaxis.set_major_locator(mdates.MonthLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
     plt.tight_layout()
     plt.show()

@@ -8,6 +8,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import seaborn as sns
 from scipy import stats
 from analysis import (TICKERS, summarize_returns_for_ci, build_ci_table,
@@ -55,6 +56,10 @@ with tab1:
             ax.plot(df.index, df["Price"])
             ax.set_title(f"{sym} Price")
             ax.grid(True, linestyle="--", alpha=0.5)
+            ax.xaxis.set_major_locator(mdates.MonthLocator())
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))
+            plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+            plt.tight_layout()
             st.pyplot(fig)
             plt.close()
         with c2:
@@ -155,6 +160,10 @@ with tab4:
         ax.set_title(f"{sym} Rolling CI")
         ax.legend(fontsize=8, frameon=False)
         ax.grid(True, linestyle="--", alpha=0.3)
+        ax.xaxis.set_major_locator(mdates.MonthLocator())
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+        plt.tight_layout()
         st.pyplot(fig)
         plt.close()
 
