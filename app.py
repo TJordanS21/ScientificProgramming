@@ -40,8 +40,8 @@ if not selected:
 
 raw_data, prepared = load(selected, lookback)
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["Overview", "CIs", "Tests", "Rolling", "Scenarios"]
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+    ["Overview", "CIs", "Tests", "Rolling", "Scenarios", "LLM Summary"]
 )
 
 with tab1:
@@ -201,6 +201,55 @@ with tab5:
     plt.tight_layout()
     st.pyplot(fig)
     plt.close()
+
+with tab6:
+    st.header("LLM-Powered Analysis Summary")
+    st.markdown("Uses OpenAI API to generate natural-language interpretations of the statistical results.")
+    st.markdown("> Requires `OPENAI_API_KEY` in environment or `.env` file.")
+
+    if st.button("Generate LLM Summary"):
+        try:
+            from llm_summary import summarise_statistics, compare_tickers_summary
+
+            # Single-ticker summary
+            primary_sym = selected[0]
+            primary_rets = prepared[primary_sym]["Return"]
+            t_s, p_v = stats.ttest_1samp(primary_rets, 0)
+            try:
+                p10 = prepare_data(raw_data[primary_sym], n_trading_days=10)
+            except RuntimeError:
+                p10 = prepared[primary_sym].iloc[-10:]
+            from analysis import summarize_returns_for_ci, build_ci_table
+            m = summarize_returns_for_ci(p10["Return"])
+            ci = build_ci_table(m, [0.90, 0.95, 0.99])
+
+            with st.spinner("Calling OpenAI API..."):
+                summary = summarise_statistics(
+                    ticker=primary_sym,
+                    descriptive_stats=prepared[primary_sym].describe(),
+                    t_test_result=(t_s, p_v),
+                    ci_table=ci,
+                )
+            st.subheader(f"Summary for {primary_sym}")
+            st.markdown(summary)
+
+            # Multi-ticker comparison
+            if len(selected) > 1:
+                ticker_stats = {}
+                for sym in selected:
+                    r = prepared[sym]["Return"]
+                    ts, pv = stats.ttest_1samp(r, 0)
+                    ticker_stats[sym] = {"mean": r.mean(), "std": r.std(), "t_stat": ts, "p_value": pv}
+
+                with st.spinner("Generating comparison..."):
+                    comparison = compare_tickers_summary(ticker_stats)
+                st.subheader("Cross-Ticker Comparison")
+                st.markdown(comparison)
+
+        except RuntimeError as e:
+            st.error(f"LLM unavailable: {e}")
+        except Exception as e:
+            st.error(f"Error: {e}")
 
 st.markdown("---")
 st.markdown("*Scientific Programming Project - FS2026*")
